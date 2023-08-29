@@ -1,0 +1,87 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+const int pinPWM = 9;
+const int pinMotorA = 10;
+const int pinMotorB = 11;
+
+const int potenciaMinima = 50;
+const int potenciaMaxima = 255;
+
+int potenciaActual = 0;
+bool modoAutomatico = true;
+
+const byte filas = 4; // Cuatro filas
+const byte columnas = 4; // Cuatro columnas
+char teclas[filas][columnas] = {
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+byte pinFilas[filas] = {5, 4, 3, 2}; // Pines para las filas
+byte pinColumnas[columnas] = {6, 7, 8, 12}; // Pines para las columnas
+Keypad keypad = Keypad(makeKeymap(teclas), pinFilas, pinColumnas, filas, columnas);
+
+void setup() {
+  lcd.begin(16, 2);
+  lcd.print("Motor DC: AUTO");
+  pinMode(pinMotorA, OUTPUT);
+  pinMode(pinMotorB, OUTPUT);
+  pinMode(pinPWM, OUTPUT);
+}
+
+void loop() {
+  char tecla = keypad.getKey();
+  if (tecla != NO_KEY) {
+    if (modoAutomatico) {
+      if (tecla == '1') {
+        modoAutomatico = false;
+        lcd.clear();
+        lcd.print("Motor DC: ");
+        lcd.print(potenciaActual);
+        lcd.print("%");
+      }
+    } else {
+      if (tecla == '#') {
+        detenerMotor();
+        lcd.clear();
+        lcd.print("Motor DC: STOP");
+      } else if (tecla == '*') {
+        potenciaActual = potenciaMinima;
+        analogWrite(pinPWM, potenciaActual);
+        lcd.clear();
+        lcd.print("Motor DC: ");
+        lcd.print(potenciaActual);
+        lcd.print("%");
+      } else if (tecla >= '1' && tecla <= '9') {
+        int valorPotencia = map(tecla - '0', 1, 9, potenciaMinima, potenciaMaxima);
+        if (valorPotencia != potenciaActual) {
+          potenciaActual = valorPotencia;
+          analogWrite(pinPWM, potenciaActual);
+          lcd.clear();
+          lcd.print("Motor DC: ");
+          lcd.print(potenciaActual);
+          lcd.print("%");
+        }
+      }
+    }
+  }
+
+  if (modoAutomatico && potenciaActual < potenciaMaxima) {
+    potenciaActual += 1;
+    analogWrite(pinPWM, potenciaActual);
+    lcd.clear();
+    lcd.print("Motor DC: ");
+    lcd.print(potenciaActual);
+    lcd.print("%");
+  }
+}
+
+void detenerMotor() {
+  digitalWrite(pinMotorA, LOW);
+  digitalWrite(pinMotorB, LOW);
+}
