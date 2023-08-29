@@ -1,0 +1,70 @@
+#include <LiquidCrystal_PCF8574.h>
+#include <Wire.h>
+#include <DHT.h>
+
+LiquidCrystal_PCF8574 lcd(0x27); // set the LCD address to 0x27 for a 16 chars and 2 line display
+#define DHTPIN 2
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+int ledpin1 = 12; // LED for temperature control (pin 12)
+int ledpin2 = 13; // LED for humidity control (pin 13)
+char grados = 223;
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+
+  pinMode(ledpin1, OUTPUT);
+  pinMode(ledpin2, OUTPUT);
+
+  lcd.begin(20, 4);
+  delay(200);
+  lcd.setBacklight(255);
+  lcd.print("humedad: ");
+  lcd.setCursor(0, 1);
+  lcd.print("Temperatura: ");
+}
+
+void loop() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) {
+    lcd.setCursor(13, 0);
+    lcd.print("% ");
+    lcd.setCursor(13, 1);
+    lcd.print("%");
+    digitalWrite(ledpin1, LOW); // Turn off LED1 when there are no valid readings
+    return;
+  }
+
+  lcd.setCursor(13, 0);
+  lcd.print(h, 0);
+  lcd.print("% ");
+  lcd.setCursor(13, 1);
+  lcd.print(t, 0);
+  lcd.print((char)grados);
+  lcd.print("C ");
+
+  // Temperature LED control
+  if (t >= 26) {
+    digitalWrite(ledpin1, HIGH);
+  } else {
+    digitalWrite(ledpin1, LOW);
+  }
+
+  // Humidity LED control
+  if (h <= 24) {
+    digitalWrite(ledpin2, HIGH);
+  } else {
+    digitalWrite(ledpin2, LOW);
+  }
+
+  Serial.print("humedad: ");
+  Serial.print(h, 0);
+  Serial.print("% Temperatura: ");
+  Serial.print(t, 0);
+  Serial.print("°C");
+  delay(1000);
+}
